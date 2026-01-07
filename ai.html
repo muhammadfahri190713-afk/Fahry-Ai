@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Universal AI Chat</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+:root {
+  --bg: #0f0f10;
+  --panel: #1a1a1d;
+  --user: #2b7cff;
+  --ai: #e5e5e5;
+  --border: #2a2a2e;
+  --text: #f5f5f5;
+  --muted: #9ca3af;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+header {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+}
+#chat {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+}
+.msg {
+  max-width: 780px;
+  margin-bottom: 16px;
+  line-height: 1.6;
+}
+.user {
+  color: white;
+  background: var(--user);
+  padding: 12px 14px;
+  border-radius: 14px 14px 4px 14px;
+  margin-left: auto;
+}
+.ai {
+  background: var(--panel);
+  padding: 12px 14px;
+  border-radius: 14px 14px 14px 4px;
+}
+.typing {
+  color: var(--muted);
+  font-style: italic;
+}
+footer {
+  border-top: 1px solid var(--border);
+  padding: 14px;
+  display: flex;
+  gap: 10px;
+}
+input {
+  flex: 1;
+  background: #111;
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 12px;
+  border-radius: 10px;
+  outline: none;
+}
+button {
+  background: #19c37d;
+  border: none;
+  color: black;
+  padding: 0 18px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+button:hover { opacity: .9; }
+</style>
+</head>
+<body>
+
+<header>Universal AI • Gemini / DeepSeek / Grok Style</header>
+
+<div id="chat">
+  <div class="msg ai">
+    Halo 👋  
+    Aku AI serbaguna. Tanyakan apa saja—aku akan menjawab sejelas, sepintar, dan setepat mungkin.
+  </div>
+</div>
+
+<footer>
+  <input id="input" placeholder="Ketik pertanyaanmu..." />
+  <button onclick="send()">Kirim</button>
+</footer>
+
+<script>
+const chat = document.getElementById("chat");
+const input = document.getElementById("input");
+
+// ================= CONFIG =================
+const API_KEY = "AIzaSyDOYeNd1XAA3EaQi6n3PxZBDdAt0ZEP1_g";
+const MODEL   = "models/text-bison-001";
+// contoh Gemini:
+// https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent
+// ==========================================
+
+function addMsg(text, cls) {
+  const d = document.createElement("div");
+  d.className = `msg ${cls}`;
+  d.textContent = text;
+  chat.appendChild(d);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+async function send() {
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = "";
+
+  addMsg(text, "user");
+  const typing = document.createElement("div");
+  typing.className = "msg typing";
+  typing.textContent = "AI sedang berpikir…";
+  chat.appendChild(typing);
+  chat.scrollTop = chat.scrollHeight;
+
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text:
+`Jawablah seperti AI modern (Gemini, DeepSeek, Grok):
+- pintar & logis
+- jelas dan terstruktur
+- netral & membantu
+- tidak bertele-tele
+
+Pertanyaan:
+${text}`
+            }]
+          }]
+        })
+      }
+    );
+
+    const data = await res.json();
+    typing.remove();
+
+    if (data.candidates) {
+      addMsg(data.candidates[0].content.parts[0].text, "ai");
+    } else if (data.error) {
+      addMsg("ERROR: " + data.error.message, "ai");
+    } else {
+      addMsg("Tidak ada respon dari model.", "ai");
+    }
+  } catch (e) {
+    typing.remove();
+    addMsg("Koneksi gagal / CORS. Jalankan via hosting (GitHub Pages).", "ai");
+  }
+}
+
+input.addEventListener("keydown", e => {
+  if (e.key === "Enter") send();
+});
+</script>
+
+</body>
+</html>
